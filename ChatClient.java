@@ -100,7 +100,7 @@ public class ChatClient extends Application {
 
 	public void sendMessage(String msg) {
 		String s = userName + ":" + msg;
-		System.out.println("sendMessage  " + s);
+		//System.out.println("sendMessage  " + s);
 		out.println(s);
 	}
 
