@@ -3,8 +3,8 @@
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class KaiwaMServer {
 
@@ -24,7 +24,7 @@ public class KaiwaMServer {
 		String filename = "/Users/apple/Desktop/" + "KaiwaMSeverLog-" + java.time.LocalDateTime.now().toString()
 				+ ".txt";
 		file = new File(filename);
-		map = new HashMap<>();
+		map = new ConcurrentHashMap<>();
 		while (end) {
 			new KaiwaMThread(serverS.accept()).start();
 		}
