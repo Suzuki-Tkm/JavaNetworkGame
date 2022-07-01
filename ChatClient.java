@@ -73,6 +73,7 @@ public class ChatClient extends Application {
 		menuExit.setOnAction((event)-> {
 			System.exit(0);
 		});
+		
 		buttonSay.setOnAction((event)-> {
 			sendMessage(field.getText());
 			field.setText("");
@@ -110,9 +111,9 @@ public class ChatClient extends Application {
 		// create Socket
 		try {
 			//サーバを別のホストで起動する場合は下の行を有効にする
-			//chatS = new Socket(InetAddress.getByName(serverName), port);
+			chatS = new Socket(InetAddress.getByName(serverName), port);
 			//ローカルホストでテストの場合は上の代わりに下の行を使う
-			chatS = new Socket(InetAddress.getLocalHost(), port);
+			//chatS = new Socket(InetAddress.getLocalHost(), port);
 			in = new BufferedReader(
 					new InputStreamReader(chatS.getInputStream()));
 			out = new PrintStream(chatS.getOutputStream());
