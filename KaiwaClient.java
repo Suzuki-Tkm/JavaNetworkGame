@@ -9,6 +9,8 @@ import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class KaiwaClient {
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -16,7 +18,7 @@ public class KaiwaClient {
 		BufferedReader in = null;
 		BufferedWriter out = null;
 		String file = null;
-		String textwords[] = new String[11];
+		List<String> textwords = new ArrayList<>();
 		boolean keyorfile = false;
 		int i = 0;
 		if(args.length == 1) {
@@ -26,9 +28,9 @@ public class KaiwaClient {
 			try(BufferedReader din = new BufferedReader(new FileReader(file));){
 				String s;
 				while((s = din.readLine())!=null) {
-					textwords[i] = s;
-					i++;
+					textwords.add(s);
 				}
+				if(textwords.size() < 11)keyorfile = false;
 			}catch(IOException e) {}
 		}
 		
@@ -55,10 +57,9 @@ public class KaiwaClient {
 			System.out.print("あなた: ");
 			if(keyorfile == false)fromUser = stdIn.readLine();
 			else if(keyorfile == true) {
-					System.out.println(textwords[i]);
-					fromUser = textwords[i];
+					System.out.println(textwords.get(i));
+					fromUser = textwords.get(i);
 					Thread.sleep(1000);
-
 			}
 			out.write(fromUser + "\n");
 			out.flush();

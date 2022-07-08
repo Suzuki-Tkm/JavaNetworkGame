@@ -1,4 +1,3 @@
-// File
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,24 +6,11 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-//チャットクライアント
-import javafx.application.Application;
-//Scene
-import javafx.scene.Scene;
-// Button
-import javafx.scene.control.Button;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-// VBox
-import javafx.scene.layout.VBox;
-//Stage, FileChooser
-import javafx.stage.Stage;
 
-public class ChatClient extends Application {
+public class GameClient {
+	
 	double w = 600, h = 600;
 	TextArea text;
 	TextField field;
@@ -37,47 +23,7 @@ public class ChatClient extends Application {
 	static String uName;   //ユーザ名
 
 	String userName;
-	@Override public void start(Stage stage) {
-		//メニュー
-		MenuBar bar = new MenuBar();
-		Menu m = new Menu("終了");
-		MenuItem menuExit = new MenuItem("終了");
-		m.getItems().add(menuExit);
-		bar.getMenus().add(m);
-		//下部ボタンコンテナ
-		Button buttonSay = new Button("発言");
-		field = new TextField();
-		VBox lowerPane = new VBox();
-		//lowerPane.setAlignment(Pos.CENTER);
-		lowerPane.getChildren().addAll(field, buttonSay);
-		//lowerPane.setPadding(new Insets(15, 10, 15, 10));
-		//lowerPane.setSpacing(20);
-		//上部コンテナ
-		ScrollPane upperPane = new ScrollPane();
-		upperPane.setPrefSize(w, h);
-		upperPane.setFitToHeight(true); //ScrollPaneの高さにノードのサイズを変更
-		upperPane.setFitToWidth(true); //ScrollPaneの幅にノードのサイズを変更
-		text = new TextArea();
-		upperPane.setContent(text);
-
-		VBox root = new VBox();
-		root.getChildren().addAll(bar, upperPane, lowerPane);
-
-		Scene scene = new Scene(root);
-		stage.setTitle("Chat Client");
-		stage.setScene(scene);
-		stage.sizeToScene();
-		stage.show();
-
-		menuExit.setOnAction((event)-> {
-			System.exit(0);
-		});
-		
-		buttonSay.setOnAction((event)-> {
-			sendMessage(field.getText());
-			field.setText("");
-			buttonSay.requestFocus();
-		});
+	public void start() {
 
 		initNet(sName, portN, uName);
 		// 別スレッド上でサーバと接続，応答を待って，表示
@@ -89,7 +35,8 @@ public class ChatClient extends Application {
 		String fromServer;
 		try{
 			while ((fromServer = in.readLine()) != null) {
-				text.setText(text.getText().concat(fromServer + "\n"));
+				//text.setText(text.getText().concat(fromServer + "\n"));
+				System.out.println(fromServer);
 			}
 			end();
 		}catch (IOException e){
@@ -147,8 +94,6 @@ public class ChatClient extends Application {
 		System.out.println("serverName = " + sName);
 		System.out.println("portNumber = " + portN);
 		System.out.println("userName = " + uName);
-		launch(args);
+		new GameClient().start();
 	}
 }
-
-

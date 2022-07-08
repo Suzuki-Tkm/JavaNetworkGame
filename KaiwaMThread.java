@@ -19,7 +19,6 @@ public class KaiwaMThread extends Thread {
 
 	public void run() {
 		try {
-			int n = 1;
 			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			String fromC, fromUser;
@@ -29,39 +28,36 @@ public class KaiwaMThread extends Thread {
 			String time = java.time.LocalDateTime.now().toString();
 			System.out.println(time + "に" + ip + "と接続しました。");
 			synchronized (KaiwaMServer.file) {
-				FileWriter fileout = new FileWriter(KaiwaMServer.file, true);
-				fileout.write(time + "に" + ip + "と接続しました。" + "\n");
-				fileout.close();
+				//FileWriter fileout = new FileWriter(KaiwaMServer.file, true);
+				KaiwaMServer.fileout.write(time + "に" + ip + "と接続しました。" + "\n");
+				KaiwaMServer.fileout.flush();
 			}
 			out.write("何でも話してください\n");
 			out.flush();
 			while ((fromUser = in.readLine()) != null) {
-				synchronized (KaiwaMServer.map) {
-					KaiwaMServer.map.put(ip, n);
-					n++;
-				}
+				KaiwaMServer.map.merge(ip, 1, (x, y) -> x + y);
 				fromC = c.kaiwa(fromUser);
 				ip = socket.getRemoteSocketAddress().toString();
 				ip = ip.replace("/", "");
 				time = java.time.LocalDateTime.now().toString();
 				System.out.println(time + " " + ip + ":" + fromUser);
 				synchronized (KaiwaMServer.file) {
-					FileWriter fileout = new FileWriter(KaiwaMServer.file, true);
-					fileout.write(time + " " + ip + " : " + fromUser + "\n");
-					fileout.close();
+					//FileWriter fileout = new FileWriter(KaiwaMServer.file, true);
+					KaiwaMServer.fileout.write(time + " " + ip + " : " + fromUser + "\n");
+					KaiwaMServer.fileout.flush();
 				}
 				out.write(fromC + "\n");
 				out.flush();
 				if (fromC.equals("ではまたにしましょう。"))
 					break;
-				//System.out.println(KaiwaMServer.map.get(ip) + "回送信が確認されました。");
+				System.out.println(KaiwaMServer.map.get(ip) + "回送信が確認されました。");
 			}
 			out.write(KaiwaMServer.map.get(ip) + "回送信が確認されました。" + "\n");
 			out.flush();
 			synchronized (KaiwaMServer.file) {
 				FileWriter fileout = new FileWriter(KaiwaMServer.file, true);
 				fileout.write(ip + "との接続を終了します。" + "\n");
-				fileout.close();
+				fileout.flush();
 			}
 			in.close();
 			out.close();
