@@ -56,6 +56,7 @@ class ChatMThread extends Thread {
 	String id;
 	String time;
 	static int i = 0;
+	String turtledataS;
 	
 	
 	ChatMThread(Socket s) {
@@ -63,13 +64,21 @@ class ChatMThread extends Thread {
 		socket = s;
 		id = socket.getRemoteSocketAddress().toString();
 		id = id.replace("/", "");
+		
+		if(ChatServer.turtledata.size() > 0) {
+			turtledataS = ChatServer.turtledata.values().toString();
+			turtledataS = turtledataS.replace("[", "generate ");
+			turtledataS = turtledataS.replace("]", "");
+			turtledataS = turtledataS.replace(", ", "\n"+"generate ");
+			System.out.println(turtledataS);
+		}
+		
 		ChatServer.turtledata.put(id,new TurtleD(id , i*50.0+100.0 , 200.0 , 90.0 , 10000.0));
 		i++;
 		if (member == null) {
 			member = new ArrayList<ChatMThread>();
 		}
 		member.add(this);
-		//System.out.println("接続");
 	}
 
 	public void run() {
@@ -79,13 +88,15 @@ class ChatMThread extends Thread {
 					new InputStreamReader(socket.getInputStream()));
 			
 			synchronized (ChatServer.file) {
-				ChatServer.fileout.write("generate" + ChatServer.turtledata.get(id)+ "\n");
+				ChatServer.fileout.write("generate " + ChatServer.turtledata.get(id)+ "\n");
 				ChatServer.fileout.flush();
 			}
 			
 			for(ChatMThread client : member){
-				client.out.println("generate" + ChatServer.turtledata.get(id));
+				client.out.println("generate " + ChatServer.turtledata.get(id));
 			}
+			
+			if(ChatServer.turtledata.size() > 1) out.println(turtledataS);
 			
 			String fromClient;
 			
@@ -98,12 +109,15 @@ class ChatMThread extends Thread {
 						
 					case "walk":
 						walk(Double.parseDouble(newStr[1]));output(); break;
+						
+					case "attack":
+						attack(Double.parseDouble(newStr[1]));output(); break;
 					}
-				
+					if(ChatServer.turtledata.get(id).getE() < 10)removemessage();
 				}catch(NumberFormatException | InterruptedException e){
 					out.println("数値の書式が正しくありません。");
 				}
-				//Thread.sleep(3000);
+				
 			}
 		}catch(IOException e){ System.out.println("run:" + e); }
 		try {
@@ -114,20 +128,9 @@ class ChatMThread extends Thread {
 	}
 
 	public void end() throws InterruptedException {
-		for(ChatMThread client : member){
-			client.out.println("remove " + id);
-			Thread.sleep(500);
-		}
-		synchronized (ChatServer.file) {
-			try {
-				ChatServer.fileout.write("remove " + id+ "\n");
-				ChatServer.fileout.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		System.out.println("remove " + id);
-		ChatServer.turtledata.remove(id);
+		
+		removemessage();
+		
 		try {
 			synchronized (ChatServer.file) {
 				ChatServer.fileout.write(id + "との接続を終了します。" + "\n");
@@ -140,9 +143,9 @@ class ChatMThread extends Thread {
 		member.remove(this);
 	}
 	
-	public void rotate(double d) {
+	public void rotate(double d) throws InterruptedException {
 		
-		if(d > -360 && 360 > d) {
+		if(d >= -10 && 10 >= d) {
 			ChatServer.turtledata.get(id).a = ChatServer.turtledata.get(id).getA() + d;
 			if(ChatServer.turtledata.get(id).getA() >= 360) {
 				ChatServer.turtledata.get(id).a = ChatServer.turtledata.get(id).getA() - 360;
@@ -157,9 +160,9 @@ class ChatMThread extends Thread {
 		}
 	}
 	
-	public void walk(double d) {
+	public void walk(double d) throws InterruptedException {
 		
-		if(d >= -100 && 100 >= d) {
+		if(d >= -10 && 10 >= d) {
 			
 			double ang = 0;
 			if(ChatServer.turtledata.get(id).getA() >= 270) {
@@ -196,6 +199,84 @@ class ChatMThread extends Thread {
 		}
 	}
 	
+	public void attack(double n) {
+		if(n > 0) {
+			
+			
+			String id_most = null;
+			double d_most = 10000;
+			
+			for(String key : ChatServer.turtledata.keySet()){
+			    if(key != id) {
+			    	
+			    	String[] data = ChatServer.turtledata.get(key).toString().split("\\s+");
+			    	double x1 = ChatServer.turtledata.get(id).getX();
+			    	double x2 = Double.parseDouble(data[1]);
+			    	double y1 = ChatServer.turtledata.get(id).getY();
+			    	double y2 = Double.parseDouble(data[2]);
+			    	double d = 	Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+			    	
+			    	//System.out.println(d);
+			    	
+			    	double px = 0;
+			    	double py = 0;
+			    	
+			    	double ang = 0;
+					if(ChatServer.turtledata.get(id).getA() >= 270) {
+						ang = Math.abs(360 - ChatServer.turtledata.get(id).getA());
+					}else if(ChatServer.turtledata.get(id).getA() >= 180) {
+						ang = Math.abs(ChatServer.turtledata.get(id).getA() - 180);
+					}else if(ChatServer.turtledata.get(id).getA() >= 90) {
+						ang = Math.abs(180 - ChatServer.turtledata.get(id).getA());
+					}else{
+						ang = Math.abs(ChatServer.turtledata.get(id).getA());
+					}
+					
+					double x = Math.cos(Math.toRadians(ang)) * d;
+					double y = Math.sin(Math.toRadians(ang)) * d;
+					
+					if(ChatServer.turtledata.get(id).getA() >= 270) {
+						px = ChatServer.turtledata.get(id).getX() + x;
+						py = ChatServer.turtledata.get(id).getY() - y;
+					}else if(ChatServer.turtledata.get(id).getA() >= 180) {
+						px = ChatServer.turtledata.get(id).getX() - x;
+						py = ChatServer.turtledata.get(id).getY() - y;
+					}else if(ChatServer.turtledata.get(id).getA() >= 90) {
+						px = ChatServer.turtledata.get(id).getX() - x;
+						py = ChatServer.turtledata.get(id).getY() + y;
+					}else {
+						px = ChatServer.turtledata.get(id).getX() + x;
+						py = ChatServer.turtledata.get(id).getY() + y;
+					}
+					
+					double d_pt = Math.sqrt((px-x2)*(px-x2)+(py-y2)*(py-y2));
+					
+					//System.out.println(d_pt);
+					
+					if(d_pt <= 10 && d < n) {
+						if(d < d_most) {
+							d_most = d;
+							id_most = data[0];
+						}
+					}
+			    }		
+			}
+			if(id_most != null) {
+				ChatServer.turtledata.get(id_most).e = ChatServer.turtledata.get(id_most).getE() - 2000;
+				//System.out.println("攻撃成功");
+			}else {
+				ChatServer.turtledata.get(id).e = ChatServer.turtledata.get(id).getE() - Math.pow(n / 2, 2);
+				//System.out.println("攻撃失敗");
+			}
+		}
+		
+		
+			
+		else {
+			out.println("数値が正しくありません。");
+		}
+	}
+	
 	public void output() throws InterruptedException, IOException {
 		for(ChatMThread client : member){
 			client.out.println("moveto " + ChatServer.turtledata.get(id));
@@ -206,6 +287,23 @@ class ChatMThread extends Thread {
 			ChatServer.fileout.flush();
 		}
 		System.out.println("moveto " + ChatServer.turtledata.get(id));
+	}
+	
+	public void removemessage() throws InterruptedException {
+		for(ChatMThread client : member){
+			client.out.println("remove " + id);
+			//Thread.sleep(500);
+		}
+		synchronized (ChatServer.file) {
+			try {
+				ChatServer.fileout.write("remove " + id+ "\n");
+				ChatServer.fileout.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		System.out.println("remove " + id);
+		ChatServer.turtledata.remove(id);
 	}
 }
 
