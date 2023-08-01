@@ -15,6 +15,7 @@ public class ChatServer {
 	static File file;
 	static FileWriter fileout;
 	public static Map<String,TurtleD> turtledata;
+	public static Map<String,Integer> quiz;
 	
 	public static void main(String[] args) throws IOException {
 		if(args.length != 1) {
@@ -32,6 +33,8 @@ public class ChatServer {
 		file = new File(filename);
 		fileout = new FileWriter(ChatServer.file, true);
 		
+		quiz = new HashMap<>();
+		quiz.put("フィボナッチ数列の6番目は",8);
 		
 		try {
 			serverS = new ServerSocket(port);
@@ -64,21 +67,13 @@ class ChatMThread extends Thread {
 		socket = s;
 		id = socket.getRemoteSocketAddress().toString();
 		id = id.replace("/", "");
-		
-		if(ChatServer.turtledata.size() > 0) {
-			turtledataS = ChatServer.turtledata.values().toString();
-			turtledataS = turtledataS.replace("[", "generate ");
-			turtledataS = turtledataS.replace("]", "");
-			turtledataS = turtledataS.replace(", ", "\n"+"generate ");
-			System.out.println(turtledataS);
-		}
-		
-		ChatServer.turtledata.put(id,new TurtleD(id , i*50.0+100.0 , 200.0 , 90.0 , 10000.0));
-		i++;
+
 		if (member == null) {
 			member = new ArrayList<ChatMThread>();
 		}
-		member.add(this);
+		synchronized(member) {
+			member.add(this);
+		}
 	}
 
 	public void run() {
@@ -87,39 +82,43 @@ class ChatMThread extends Thread {
 			in = new BufferedReader(
 					new InputStreamReader(socket.getInputStream()));
 			
-			synchronized (ChatServer.file) {
-				ChatServer.fileout.write("generate " + ChatServer.turtledata.get(id)+ "\n");
-				ChatServer.fileout.flush();
-			}
-			
-			for(ChatMThread client : member){
-				client.out.println("generate " + ChatServer.turtledata.get(id));
-			}
-			
-			if(ChatServer.turtledata.size() > 1) out.println(turtledataS);
-			
 			String fromClient;
 			
 			while ((fromClient = in.readLine()) != null) {
+				
+				if("connect".equals(fromClient))  generate();
+				if(!ChatServer.turtledata.containsKey(id)) {
+					//out.println(id +"は死んでます。" );
+					if("angel".equals(fromClient)) angel();
+					continue;
+				}
 				String[] newStr = fromClient.split("\\s+");
+				
 				try {
+					
 					switch (newStr[0]) {
 					case "rotate":
-						rotate(Double.parseDouble(newStr[1]));output(); break;
-						
+						rotate(Double.parseDouble(newStr[1])); break;
 					case "walk":
-						walk(Double.parseDouble(newStr[1]));output(); break;
-						
+						walk(Double.parseDouble(newStr[1])); break;
 					case "attack":
-						attack(Double.parseDouble(newStr[1]));output(); break;
+						attack(Double.parseDouble(newStr[1])); break;
+					case "heal":
+						heal(); break;
+					case "casino":
+						casino(Double.parseDouble(newStr[1])); break;
+					case "quiz":
+						quiz(); break;
+					case "A":
+						a(newStr[1],Double.parseDouble(newStr[2])); break;
 					}
-					if(ChatServer.turtledata.get(id).getE() < 10)removemessage();
-				}catch(NumberFormatException | InterruptedException e){
+					
+				}catch(NumberFormatException | InterruptedException | ArrayIndexOutOfBoundsException e){
 					out.println("数値の書式が正しくありません。");
 				}
 				
 			}
-		}catch(IOException e){ System.out.println("run:" + e); }
+		}catch(IOException | InterruptedException e){ System.out.println("run:" + e); }
 		try {
 			end();
 		} catch (InterruptedException e) {
@@ -129,12 +128,12 @@ class ChatMThread extends Thread {
 
 	public void end() throws InterruptedException {
 		
-		removemessage();
+		 if (ChatServer.turtledata.containsKey(id))removemessage(id);
 		
 		try {
 			synchronized (ChatServer.file) {
 				ChatServer.fileout.write(id + "との接続を終了します。" + "\n");
-				ChatServer.fileout.close();
+				ChatServer.fileout.flush(); //修正
 			}
 			in.close();
 			out.close();
@@ -143,9 +142,30 @@ class ChatMThread extends Thread {
 		member.remove(this);
 	}
 	
-	public void rotate(double d) throws InterruptedException {
+	public void generate() throws IOException {
 		
-		if(d >= -10 && 10 >= d) {
+		double ran = Math.random();
+		ChatServer.turtledata.put(id,new TurtleD(id , i*50.0+100.0 , ran*200+100 , ran*90.0 , 10000.0));
+		i++;
+		synchronized (ChatServer.file) {
+			ChatServer.fileout.write("generate " + ChatServer.turtledata.get(id)+ "\n");
+			ChatServer.fileout.flush();
+		}
+		
+		for(ChatMThread client : member){
+			client.out.println("generate " + ChatServer.turtledata.get(id));
+		}
+		
+		for(String key : ChatServer.turtledata.keySet()){
+		    if(key != id) {
+		    	out.println("generate " +ChatServer.turtledata.get(key).toString());
+		    }
+		}
+	}
+	
+	public void rotate(double d) throws InterruptedException, IOException {
+		
+		if(d >= -30 && 30 >= d) {
 			ChatServer.turtledata.get(id).a = ChatServer.turtledata.get(id).getA() + d;
 			if(ChatServer.turtledata.get(id).getA() >= 360) {
 				ChatServer.turtledata.get(id).a = ChatServer.turtledata.get(id).getA() - 360;
@@ -154,15 +174,17 @@ class ChatMThread extends Thread {
 				ChatServer.turtledata.get(id).a = 360 + ChatServer.turtledata.get(id).getA();
 			}
 			ChatServer.turtledata.get(id).e = ChatServer.turtledata.get(id).getE() - Math.abs(d);
+			if(ChatServer.turtledata.get(id).getE() < 1000)removemessage(id);
+			else output(id);
 		}
 		else {
 			out.println("数値が正しくありません。");
 		}
 	}
 	
-	public void walk(double d) throws InterruptedException {
+	public void walk(double d) throws InterruptedException, IOException {
 		
-		if(d >= -10 && 10 >= d) {
+		if(d >= -30 && 30 >= d) {
 			
 			double ang = 0;
 			if(ChatServer.turtledata.get(id).getA() >= 270) {
@@ -193,13 +215,15 @@ class ChatMThread extends Thread {
 			}
 			
 			ChatServer.turtledata.get(id).e = ChatServer.turtledata.get(id).getE() - Math.abs(d);
+			if(ChatServer.turtledata.get(id).getE() < 1000)removemessage(id);
+			else output(id);
 		}
 		else {
 			out.println("数値が正しくありません。");
 		}
 	}
 	
-	public void attack(double n) {
+	public void attack(double n) throws InterruptedException, IOException {
 		if(n > 0) {
 			
 			
@@ -253,7 +277,7 @@ class ChatMThread extends Thread {
 					
 					//System.out.println(d_pt);
 					
-					if(d_pt <= 10 && d < n) {
+					if(d_pt <= 20 && d < n) {
 						if(d < d_most) {
 							d_most = d;
 							id_most = data[0];
@@ -263,10 +287,14 @@ class ChatMThread extends Thread {
 			}
 			if(id_most != null) {
 				ChatServer.turtledata.get(id_most).e = ChatServer.turtledata.get(id_most).getE() - 2000;
-				//System.out.println("攻撃成功");
+				System.out.println("攻撃成功");
+				if(ChatServer.turtledata.get(id_most).getE() < 1000)removemessage(id_most);
+				else output(id_most);
 			}else {
 				ChatServer.turtledata.get(id).e = ChatServer.turtledata.get(id).getE() - Math.pow(n / 2, 2);
-				//System.out.println("攻撃失敗");
+				System.out.println("攻撃失敗");
+				if(ChatServer.turtledata.get(id).getE() < 1000)removemessage(id);
+				else output(id);
 			}
 		}
 		
@@ -277,10 +305,51 @@ class ChatMThread extends Thread {
 		}
 	}
 	
-	public void output() throws InterruptedException, IOException {
+	public void heal() throws InterruptedException, IOException {
+		int ram = (int)(Math.random()*5);
+		if(ram == 0) {
+			ChatServer.turtledata.get(id).e = ChatServer.turtledata.get(id).getE() + 100;
+		}
+		output(id);
+	}
+	
+	public void casino(double n) throws InterruptedException, IOException {
+		int ram = (int)(Math.random()*1000);
+		if(n == ram) {
+			ChatServer.turtledata.get(id).e = ChatServer.turtledata.get(id).getE() + 5000;
+		}
+		output(id);
+	}
+	
+	public void angel() throws InterruptedException, IOException {
+		
+		for(String key : ChatServer.turtledata.keySet()){
+			int ram = (int)(Math.random()*9);
+			if(ram == 0) {
+				ChatServer.turtledata.get(key).e = ChatServer.turtledata.get(key).getE() + 100;
+				output(key);
+			}
+		}
+	}
+	
+	public void quiz() {
+		for(String key : ChatServer.quiz.keySet()){
+			out.println(key);
+		}
+	}
+	
+	public void a(String key,double a) throws InterruptedException, IOException {
+		if(ChatServer.quiz.get(key) == a) {
+			ChatServer.turtledata.get(id).e = ChatServer.turtledata.get(id).getE() + 1000;
+			output(id);
+		}
+	}
+	
+	public void output(String id) throws InterruptedException, IOException {
+
 		for(ChatMThread client : member){
 			client.out.println("moveto " + ChatServer.turtledata.get(id));
-			Thread.sleep(500);
+			//Thread.sleep(500);
 		}
 		synchronized (ChatServer.file) {
 			ChatServer.fileout.write("moveto " + ChatServer.turtledata.get(id)+ "\n");
@@ -289,7 +358,7 @@ class ChatMThread extends Thread {
 		System.out.println("moveto " + ChatServer.turtledata.get(id));
 	}
 	
-	public void removemessage() throws InterruptedException {
+	public void removemessage(String id) throws InterruptedException {
 		for(ChatMThread client : member){
 			client.out.println("remove " + id);
 			//Thread.sleep(500);

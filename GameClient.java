@@ -38,7 +38,11 @@ public class GameClient extends Turtle {
 		initNet(sName, portN, uName);
 		// 別スレッド上でサーバと接続，応答を待って，表示
 		new Thread(() -> {
-			startChat();
+			try {
+				startChat();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}).start();
 		new Thread(() -> {
 			try {
@@ -49,13 +53,14 @@ public class GameClient extends Turtle {
 		}).start();
 	}
 
-	public void startChat() {
+	public void startChat() throws InterruptedException {
 		sendMessage(" 接続しました。");
 		String fromServer;
 		try {
+			out.println("connect");
 			while ((fromServer = in.readLine()) != null) {
 				// text.setText(text.getText().concat(fromServer + "\n"));
-				System.out.println(fromServer);
+				System.out.println(fromServer);//これをtry野中に入れてserverの命令を帰る。
 				String[] newStr = fromServer.split("\\s+");
 				try {
 					switch (newStr[0]) {
@@ -122,7 +127,7 @@ public class GameClient extends Turtle {
 		// create Socket
 		try {
 			// サーバを別のホストで起動する場合は下の行を有効にする
-			// chatS = new Socket(InetAddress.getByName(serverName), port);
+			//chatS = new Socket(InetAddress.getByName(serverName), port);
 			// ローカルホストでテストの場合は上の代わりに下の行を使う
 			chatS = new Socket(InetAddress.getLocalHost(), port);
 			in = new BufferedReader(new InputStreamReader(chatS.getInputStream()));

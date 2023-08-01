@@ -5,6 +5,8 @@ import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -29,10 +31,53 @@ public class AutoGameClient {
 		initNet(sName, portN, uName);
 		// 別スレッド上でサーバと接続，応答を待って，表示
 		new Thread(() -> {startChat();}).start();
+		
+		Timer timer = new Timer(false);
+		TimerTask task = new TimerTask() {
+			@Override
+			public void run() {
+				int ram = (int)(Math.random()*3);
+				if(ram == 0) {
+					rotate();
+				}else if(ram == 1) {
+					walk();
+				}	
+				else {
+					attack();
+				}
+			}
+		};
+		
+		timer.schedule(task, 0, 10000);
+	}
+	
+	public void rotate() {
+		double d = 0;
+		double e = (Math.random()*10000)*2;
+		d = 10 - e / 1000;
+		System.out.println("rotate "+ d);
+		out.println("rotate "+ d);
+	}
+	
+	public void walk() {
+		double d = 0;
+		double e = (Math.random()*10000)*2;
+		d = 10 - e / 1000;
+		System.out.println("walk "+ d);
+		out.println("walk "+ d);
+	}
+	
+	public void attack() {
+		double d = 0;
+		double e = (Math.random()*10000)*2;
+		d = e / 1000;
+		System.out.println("attack "+ d);
+		out.println("attack "+ d);
 	}
 
 	public void startChat() {
 		sendMessage(" 接続しました。");
+		out.println("connect");
 		String fromServer;
 		try{
 			while ((fromServer = in.readLine()) != null) {
@@ -97,7 +142,7 @@ public class AutoGameClient {
 		System.out.println("serverName = " + sName);
 		System.out.println("portNumber = " + portN);
 		System.out.println("userName = " + uName);
-		new GameClient().start();
+		new AutoGameClient().start();
 	}
 
 }
